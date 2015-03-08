@@ -65,9 +65,8 @@ public class Phishpic extends ActionBarActivity {
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_PICTURES);
-        if (!storageDir.mkdirs()) {
-                Toast.makeText(getApplicationContext(), "Couldn't create pictures directory", Toast.LENGTH_LONG).show();
-        }
+        storageDir.mkdirs();
+
         File image = File.createTempFile(
                 imageFileName,  /* prefix */
                 ".jpg",         /* suffix */
