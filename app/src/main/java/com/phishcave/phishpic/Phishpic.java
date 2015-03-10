@@ -53,7 +53,7 @@ public class Phishpic extends ActionBarActivity {
                 photoFile = createImageFile();
             } catch (IOException ex) {
                 // Error occurred while creating the File
-                Toast.makeText(getApplicationContext(), "Error: Unable to create image file!", Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(), "Error: " + ex.getMessage(), Toast.LENGTH_LONG).show();
             }
             // Continue only if the File was successfully created
             if (photoFile != null) {
@@ -71,15 +71,23 @@ public class Phishpic extends ActionBarActivity {
         File storageDir = Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_PICTURES);
         storageDir.mkdirs();
+        File image = null;
 
-        File image = File.createTempFile(
-                imageFileName,  /* prefix */
-                ".jpg",         /* suffix */
-                storageDir      /* directory */
-        );
+        try {
+            image = File.createTempFile(
+                    imageFileName,  /* prefix */
+                    ".jpg",         /* suffix */
+                    storageDir      /* directory */
+            );
+            // Save a file: path for use with ACTION_VIEW intents
+            mCurrentPhotoPath = image.getAbsolutePath();
+        }
+        catch (IOException ex) {
+            String errMsg = "Error creating " + imageFileName + ".jpg"
+                    + " in " + storageDir.getAbsolutePath() + ": " + ex.getMessage();
+            Toast.makeText(getApplicationContext(), errMsg, Toast.LENGTH_LONG).show();
+        }
 
-        // Save a file: path for use with ACTION_VIEW intents
-        mCurrentPhotoPath = image.getAbsolutePath();
         return image;
     }
 
