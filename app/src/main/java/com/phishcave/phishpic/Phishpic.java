@@ -5,8 +5,12 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.SurfaceTexture;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCharacteristics;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -14,25 +18,103 @@ import android.support.v7.widget.ShareActionProvider;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraCaptureSession;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 
 public class Phishpic extends ActionBarActivity {
 
     private ShareActionProvider mShareActionProvider;
+    private CameraManager mCameraManager;
+    private CameraDevice mCamera;
+    private final ArrayList<Surface> l = new ArrayList();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_phishpic);
-        dispatchTakePictureIntent();
+
+        mCameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+
+        try {
+            String camId = mCameraManager.getCameraIdList()[0]; //TODO: Warn and exit on no cams
+            CameraCharacteristics camChars = mCameraManager.getCameraCharacteristics(camId);
+            mCameraManager.openCamera(camId, new CameraDevice.StateCallback() {
+                @Override
+                public void onOpened(CameraDevice camera) {
+                    Log.d("Phishpic", "onOpened");
+                    mCamera = camera;
+                }
+
+                @Override
+                public void onDisconnected(CameraDevice camera) {
+                    Log.d("Phishpic", "onDisconnected");
+                }
+
+                @Override
+                public void onError(CameraDevice camera, int error) {
+                    Log.d("Phishpic", "onError");
+                }
+            }, null);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+
+        SurfaceView surfaceView = (SurfaceView)findViewById(R.id.surfaceView);
+        final SurfaceHolder surfaceHolder = surfaceView.getHolder();
+        Surface surface = surfaceHolder.getSurface();
+        l.add(surface);
+
+        surfaceHolder.addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(SurfaceHolder holder) {
+                Log.d("Phishpic", "surfaceCreated");
+            }
+
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+                Log.d("Phishpic", "surfaceChanged format: " + String.valueOf(format) + " w: " + String.valueOf(width) + " h: " + String.valueOf(height));
+                //surfaceHolder.setFormat(format);
+                //surfaceHolder.setFixedSize(width, height);
+                try {
+                    SystemClock.sleep(1000);
+                    mCamera.createCaptureSession(l, new CameraCaptureSession.StateCallback() {
+                        @Override
+                        public void onConfigured(CameraCaptureSession session) {
+                            Log.d("Phishpic", "Camera configured!");
+                        }
+
+                        @Override
+                        public void onConfigureFailed(CameraCaptureSession session) {
+                            Log.d("Phishpic", "Camera configuration failed.");
+                        }
+                    }, null);
+                } catch (CameraAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+                Log.d("Phishpic", "surfaceDestroyed");
+            }
+        });
+
+        //dispatchTakePictureIntent();
     }
 
     static final int REQUEST_IMAGE_CAPTURE = 1;
