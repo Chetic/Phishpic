@@ -22,10 +22,10 @@
         android:enabled="true"
         android:onClick="uploadImage" />
 
-    <SurfaceView
+    <FrameLayout
         android:layout_width="640px"
         android:layout_height="480px"
-        android:id="@+id/surfaceView"
+        android:id="@+id/camera_preview"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true" />
 </RelativeLayout>

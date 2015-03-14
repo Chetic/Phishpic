@@ -2,12 +2,12 @@ package com.phishcave.phishpic;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.hardware.Camera;
 import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
-import android.hardware.camera2.CameraAccessException;
-import android.hardware.camera2.CameraCharacteristics;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.SystemClock;
@@ -22,11 +22,9 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.Toast;
-import android.hardware.camera2.CameraManager;
-import android.hardware.camera2.CameraDevice;
-import android.hardware.camera2.CameraCaptureSession;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,80 +37,23 @@ import java.util.List;
 public class Phishpic extends ActionBarActivity {
 
     private ShareActionProvider mShareActionProvider;
-    private CameraManager mCameraManager;
-    private CameraDevice mCamera;
-    private final ArrayList<Surface> l = new ArrayList();
+    private Camera mCamera;
+    private CameraPreview mCameraPreview;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_phishpic);
 
-        mCameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-
-        try {
-            String camId = mCameraManager.getCameraIdList()[0]; //TODO: Warn and exit on no cams
-            CameraCharacteristics camChars = mCameraManager.getCameraCharacteristics(camId);
-            mCameraManager.openCamera(camId, new CameraDevice.StateCallback() {
-                @Override
-                public void onOpened(CameraDevice camera) {
-                    Log.d("Phishpic", "onOpened");
-                    mCamera = camera;
-                }
-
-                @Override
-                public void onDisconnected(CameraDevice camera) {
-                    Log.d("Phishpic", "onDisconnected");
-                }
-
-                @Override
-                public void onError(CameraDevice camera, int error) {
-                    Log.d("Phishpic", "onError");
-                }
-            }, null);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
+        if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
+            mCamera = Camera.open();
+            mCameraPreview = new CameraPreview(this, mCamera);
+            FrameLayout camera_preview = (FrameLayout)findViewById(R.id.camera_preview);
+            camera_preview.addView(mCameraPreview);
         }
-
-        SurfaceView surfaceView = (SurfaceView)findViewById(R.id.surfaceView);
-        final SurfaceHolder surfaceHolder = surfaceView.getHolder();
-        Surface surface = surfaceHolder.getSurface();
-        l.add(surface);
-
-        surfaceHolder.addCallback(new SurfaceHolder.Callback() {
-            @Override
-            public void surfaceCreated(SurfaceHolder holder) {
-                Log.d("Phishpic", "surfaceCreated");
-            }
-
-            @Override
-            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-                Log.d("Phishpic", "surfaceChanged format: " + String.valueOf(format) + " w: " + String.valueOf(width) + " h: " + String.valueOf(height));
-                //surfaceHolder.setFormat(format);
-                //surfaceHolder.setFixedSize(width, height);
-                try {
-                    SystemClock.sleep(1000);
-                    mCamera.createCaptureSession(l, new CameraCaptureSession.StateCallback() {
-                        @Override
-                        public void onConfigured(CameraCaptureSession session) {
-                            Log.d("Phishpic", "Camera configured!");
-                        }
-
-                        @Override
-                        public void onConfigureFailed(CameraCaptureSession session) {
-                            Log.d("Phishpic", "Camera configuration failed.");
-                        }
-                    }, null);
-                } catch (CameraAccessException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            @Override
-            public void surfaceDestroyed(SurfaceHolder holder) {
-                Log.d("Phishpic", "surfaceDestroyed");
-            }
-        });
+        else {
+            Toast.makeText(getApplicationContext(), "Error: No camera found", Toast.LENGTH_LONG).show();
+        }
 
         //dispatchTakePictureIntent();
     }

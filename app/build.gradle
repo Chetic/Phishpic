@@ -6,8 +6,8 @@ android {
 
     defaultConfig {
         applicationId "com.phishcave.phishpic"
-        minSdkVersion 21
-        targetSdkVersion 21
+        minSdkVersion 14
+        targetSdkVersion 17
         versionCode 1
         versionName "1.0"
     }
