@@ -1,5 +1,6 @@
 package com.phishcave.phishpic;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -35,21 +36,21 @@ import java.util.Date;
 import java.util.List;
 
 
-public class Phishpic extends ActionBarActivity {
+public class Phishpic extends Activity {
 
-    private ShareActionProvider mShareActionProvider;
-    private Camera mCamera;
     private CameraPreview mCameraPreview;
     String mCurrentPhotoPath;
+    protected static Activity activity;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_phishpic);
 
+        activity = this;
+
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
-            mCamera = Camera.open();
-            mCameraPreview = new CameraPreview(this, mCamera);
+            mCameraPreview = new CameraPreview(this, 0);
             FrameLayout camera_preview = (FrameLayout)findViewById(R.id.app_frame);
             camera_preview.addView(mCameraPreview);
             Button uploadButton = (Button)findViewById(R.id.uploadButton);
