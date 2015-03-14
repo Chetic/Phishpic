@@ -22,6 +22,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -49,8 +50,10 @@ public class Phishpic extends ActionBarActivity {
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             mCamera = Camera.open();
             mCameraPreview = new CameraPreview(this, mCamera);
-            FrameLayout camera_preview = (FrameLayout)findViewById(R.id.camera_preview);
+            FrameLayout camera_preview = (FrameLayout)findViewById(R.id.app_frame);
             camera_preview.addView(mCameraPreview);
+            Button uploadButton = (Button)findViewById(R.id.uploadButton);
+            uploadButton.bringToFront();
         }
         else {
             Toast.makeText(getApplicationContext(), "Error: No camera found", Toast.LENGTH_LONG).show();
