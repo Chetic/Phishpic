@@ -39,6 +39,7 @@ public class Phishpic extends ActionBarActivity {
     private ShareActionProvider mShareActionProvider;
     private Camera mCamera;
     private CameraPreview mCameraPreview;
+    String mCurrentPhotoPath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,37 +55,10 @@ public class Phishpic extends ActionBarActivity {
         else {
             Toast.makeText(getApplicationContext(), "Error: No camera found", Toast.LENGTH_LONG).show();
         }
-
-        //dispatchTakePictureIntent();
     }
-
-    static final int REQUEST_IMAGE_CAPTURE = 1;
-    String mCurrentPhotoPath;
-    static final int REQUEST_TAKE_PHOTO = 1;
 
     public void uploadImage(View v) {
         Toast.makeText(getApplicationContext(), "Clicked!", Toast.LENGTH_LONG).show();
-    }
-
-    private void dispatchTakePictureIntent() {
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        // Ensure that there's a camera activity to handle the intent
-        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            // Create the File where the photo should go
-            File photoFile = null;
-            try {
-                photoFile = createImageFile();
-            } catch (IOException ex) {
-                // Error occurred while creating the File
-                Toast.makeText(getApplicationContext(), "Error: " + ex.getMessage(), Toast.LENGTH_LONG).show();
-            }
-            // Continue only if the File was successfully created
-            if (photoFile != null) {
-                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,
-                        Uri.fromFile(photoFile));
-                startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
-            }
-        }
     }
 
     private File createImageFile() throws IOException {
@@ -116,24 +90,8 @@ public class Phishpic extends ActionBarActivity {
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            File imgFile = new  File(mCurrentPhotoPath);
-
-            if(imgFile.exists()) {
-                Bitmap originalBitmap = BitmapFactory.decodeFile(mCurrentPhotoPath);
-
-                Matrix matrix = new Matrix();
-                matrix.preScale(-1.0f, 1.0f);
-                Bitmap flippedBitmap = Bitmap.createBitmap(originalBitmap, 0, 0, originalBitmap.getWidth(), originalBitmap.getHeight(), matrix, false);
-
-                ImageView myImageView = (ImageView) findViewById(R.id.imageView);
-                myImageView.setImageBitmap(flippedBitmap);
-                Toast.makeText(getApplicationContext(), "There we go!", Toast.LENGTH_LONG).show();
-            }
-            else {
-                Toast.makeText(getApplicationContext(), "Error: Image file doesn't exist", Toast.LENGTH_LONG).show();
-            }
-        }
+        Log.d("Phishpic", "Received intent response with request code: " +
+                String.valueOf(requestCode) + ", result code: " + String.valueOf(resultCode));
     }
 
     @Override
