@@ -10,6 +10,7 @@ import android.hardware.Camera;
 import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.SystemClock;
 import android.provider.MediaStore;
@@ -30,6 +31,9 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -61,8 +65,8 @@ public class Phishpic extends Activity {
         }
     }
 
-    public void uploadImage(View v) {
-        Toast.makeText(getApplicationContext(), "Clicked!", Toast.LENGTH_LONG).show();
+    public void uploadPicture(View v) {
+        mCameraPreview.uploadPicture();
     }
 
     private File createImageFile() throws IOException {
