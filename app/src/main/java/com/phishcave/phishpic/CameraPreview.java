@@ -13,16 +13,28 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.Socket;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 /** A basic Camera preview class */
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
@@ -34,6 +46,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         super(context);
         mCameraId = cameraId;
         mCamera = Camera.open(mCameraId);
+
+        //boolean did_disable_shutter_sound_work = mCamera.enableShutterSound(false);
 
         // Install a SurfaceHolder.Callback so we get notified when the
         // underlying surface is created and destroyed.
@@ -119,23 +133,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                     AsyncTask<byte[], Void, Void> task = new AsyncTask<byte[], Void, Void>() {
                         @Override
                         protected Void doInBackground(byte[]... params) {
-                            try {
-                                byte[] jpegData = params[0];
-                                Socket socket = new Socket("phishcave.com/uploadfile", 1337);
-                                OutputStream out = socket.getOutputStream();
-                                DataOutputStream dos = new DataOutputStream(out);
-                                dos.write(jpegData);
-                                //http://stackoverflow.com/questions/4896949/android-httpclient-file-upload-data-corruption-and-timeout-issues/4896988#4896988
-                                /*
-                                DatagramSocket s = new DatagramSocket();
-                                InetAddress chetcom = InetAddress.getByName("phishcave.com/uploadfile");
-                                DatagramPacket p = new DatagramPacket(jpegData, jpegData.length, chetcom, 1337);
-                                s.send(p);
-                                */
-                                Log.d("Phishpic", "jpeg data sent!");
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
+                            byte[] jpegData = params[0];
+                            HttpPostUploader uploader = new HttpPostUploader(jpegData, "whatever.jpg", "http://phishcave.com/api/upload");
                             return null;
                         }
                     };
