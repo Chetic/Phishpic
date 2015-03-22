@@ -83,7 +83,8 @@ public class HttpPostUploader
             e.printStackTrace();
         }
         // Create a new ContentHandler and apply it to the XML-Reader
-        xr.setContentHandler(new DefaultHandler());
+        MyExampleHandler1 myExampleHandler = new MyExampleHandler1();
+        xr.setContentHandler(myExampleHandler);
 
         // Parse the xml-data from our URL.
         try {
@@ -97,6 +98,46 @@ public class HttpPostUploader
             e.printStackTrace();
         } catch (SAXException e) {
             e.printStackTrace();
+        }
+    }
+
+    class MyExampleHandler1 extends DefaultHandler
+    {
+        // ===========================================================
+        // Methods
+        // ===========================================================
+
+        @Override
+        public void startDocument() throws SAXException {
+
+        }
+
+        @Override
+        public void endDocument() throws SAXException {
+            // Nothing to do
+        }
+
+        @Override
+        public void startElement(String namespaceURI, String localName,
+                                 String qName, Attributes atts) throws SAXException {
+
+
+        }
+
+        /** Gets be called on closing tags like:
+         * </tag> */
+        @Override
+        public void endElement(String namespaceURI, String localName, String qName)
+                throws SAXException {
+
+
+        }
+
+        /** Gets be called on the following structure:
+         * <tag>characters</tag> */
+        @Override
+        public void characters(char ch[], int start, int length) {
+
         }
     }
 }

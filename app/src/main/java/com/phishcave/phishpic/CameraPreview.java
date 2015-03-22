@@ -8,6 +8,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.hardware.Camera;
 import android.os.AsyncTask;
+import android.util.Base64;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -15,8 +16,11 @@ import android.view.SurfaceView;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 
@@ -134,12 +138,34 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                         @Override
                         protected Void doInBackground(byte[]... params) {
                             byte[] jpegData = params[0];
-                            HttpPostUploader uploader = new HttpPostUploader(jpegData, "whatever.jpg", "http://phishcave.com/api/upload");
+                            //HttpPostUploader uploader = new HttpPostUploader(jpegData, "", "http://phishcave.com/api/upload");
+                            postData(jpegData, "http://phishcave.com/api/upload");
                             return null;
                         }
                     };
                     task.execute(jpegData);
             }
         });
+    }
+
+    public void postData(byte[] data, String url) {
+        // Create a new HttpClient and Post Header
+        HttpClient httpclient = new DefaultHttpClient();
+        HttpPost httppost = new HttpPost(url);
+
+        try {
+            List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
+            nameValuePairs.add(new BasicNameValuePair("authenticity_token", ""));
+            nameValuePairs.add(new BasicNameValuePair("upload[file]", Base64.encodeToString(data, Base64.NO_WRAP)));
+            httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+
+            // Execute HTTP Post Request
+            HttpResponse response = httpclient.execute(httppost);
+            Log.d("Phishpic", response.getStatusLine().toString());
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
