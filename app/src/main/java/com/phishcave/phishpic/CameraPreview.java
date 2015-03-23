@@ -14,6 +14,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
@@ -21,8 +22,11 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -138,7 +142,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                         @Override
                         protected Void doInBackground(byte[]... params) {
                             byte[] jpegData = params[0];
-                            //HttpPostUploader uploader = new HttpPostUploader(jpegData, "", "http://phishcave.com/api/upload");
                             postData(jpegData, "http://phishcave.com/api/upload");
                             return null;
                         }
@@ -154,14 +157,14 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         HttpPost httppost = new HttpPost(url);
 
         try {
-            List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
-            nameValuePairs.add(new BasicNameValuePair("authenticity_token", ""));
-            nameValuePairs.add(new BasicNameValuePair("upload[file]", Base64.encodeToString(data, Base64.NO_WRAP)));
-            httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-
-            // Execute HTTP Post Request
+            MultipartEntityBuilder meb = MultipartEntityBuilder.create();
+            meb.addBinaryBody("upload[file]", data);
+            meb.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+            HttpEntity multipartEntity = meb.build();
+            httppost.setEntity(multipartEntity);
             HttpResponse response = httpclient.execute(httppost);
-            Log.d("Phishpic", response.getStatusLine().toString());
+            HttpEntity responseEntity = response.getEntity();
+            Log.d("Phishpic", EntityUtils.toString(responseEntity));
         } catch (ClientProtocolException e) {
             e.printStackTrace();
         } catch (IOException e) {
