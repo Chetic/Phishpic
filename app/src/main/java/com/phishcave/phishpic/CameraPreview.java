@@ -169,6 +169,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             HttpResponse response = httpclient.execute(httppost);
             HttpEntity responseEntity = response.getEntity();
             Log.d("Phishpic", EntityUtils.toString(responseEntity));
+            mCamera.startPreview();
         } catch (ClientProtocolException e) {
             e.printStackTrace();
         } catch (IOException e) {
