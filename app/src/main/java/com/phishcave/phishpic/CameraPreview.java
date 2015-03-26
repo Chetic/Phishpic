@@ -7,6 +7,7 @@ package com.phishcave.phishpic;
 import android.app.Activity;
 import android.content.Context;
 import android.hardware.Camera;
+import android.hardware.Camera.Size;
 import android.os.AsyncTask;
 import android.util.Base64;
 import android.util.Log;
@@ -68,11 +69,42 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
     }
 
+    private Size getOptimalSize(List<Size> sizes,int w,int h){
+        final double ASPECT_TOLERANCE=0.0;
+        double targetRatio=(double)w / h;
+        if (sizes == null)   return null;
+        Size optimalSize=null;
+        double minDiff=Double.MAX_VALUE;
+        int targetHeight=Math.min(h,w);
+        for (  Size size : sizes) {
+            double ratio=(double)size.width / size.height;
+            if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE)     continue;
+            if (Math.abs(size.height - targetHeight) < minDiff) {
+                optimalSize=size;
+                minDiff=Math.abs(size.height - targetHeight);
+            }
+        }
+        if (optimalSize == null) {
+            minDiff=Double.MAX_VALUE;
+            for (    Size size : sizes) {
+                if (Math.abs(size.height - targetHeight) < minDiff) {
+                    optimalSize=size;
+                    minDiff=Math.abs(size.height - targetHeight);
+                }
+            }
+        }
+        return optimalSize;
+    }
+
     public void surfaceCreated(SurfaceHolder holder) {
         // The Surface has been created, now tell the camera where to draw the preview.
         try {
             mCamera.setPreviewDisplay(holder);
             Camera.Parameters params = mCamera.getParameters();
+            List<Camera.Size> sizes = params.getSupportedPictureSizes();
+            Camera.Size optimalSize = getOptimalSize(sizes, 1024, 768);
+            params.setPictureSize(optimalSize.width, optimalSize.height);
+            Log.d("Phishpic", "Setting picture size to: " + optimalSize.width + "x" + optimalSize.height);
             params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
             mCamera.setParameters(params);
             mCamera.startPreview();
