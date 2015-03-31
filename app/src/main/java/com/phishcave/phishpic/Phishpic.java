@@ -1,6 +1,8 @@
 package com.phishcave.phishpic;
 
+import android.accounts.AccountManager;
 import android.app.Activity;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -28,6 +30,11 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.Toast;
+
+import com.google.android.gms.auth.GooglePlayServicesAvailabilityException;
+import com.google.android.gms.auth.UserRecoverableAuthException;
+import com.google.android.gms.common.AccountPicker;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -57,6 +64,13 @@ public class Phishpic extends Activity {
     private CameraPreview mCameraPreview;
     String mCurrentPhotoPath;
     protected static Activity activity;
+    static final int REQUEST_CODE_PICK_ACCOUNT = 1000;
+    String mEmail; // Received from newChooseAccountIntent(); passed to getToken()
+    String mAuthToken = "";
+    static final int REQUEST_CODE_RECOVER_FROM_PLAY_SERVICES_ERROR = 1001;
+    static final int REQUEST_CODE_RECOVER_FROM_AUTH_ERROR = 1002;
+    private static final String SCOPE =
+            "oauth2:https://www.googleapis.com/auth/userinfo.email";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +78,7 @@ public class Phishpic extends Activity {
         setContentView(R.layout.activity_phishpic);
 
         activity = this;
-
+        getUsername();
 
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             mCamera = Camera.open(mCameraId);
@@ -77,6 +91,62 @@ public class Phishpic extends Activity {
         else {
             Toast.makeText(getApplicationContext(), "Error: No camera found", Toast.LENGTH_LONG).show();
         }
+    }
+
+    /**
+     * Attempts to retrieve the username.
+     * If the account is not yet known, invoke the picker. Once the account is known,
+     * start an instance of the AsyncTask to get the auth token and do work with it.
+     */
+    private void getUsername() {
+        if (mEmail == null) {
+            pickUserAccount();
+        } else {
+            new GetUsernameTask(Phishpic.this, mEmail, SCOPE).execute();
+        }
+    }
+
+    private void pickUserAccount() {
+        String[] accountTypes = new String[]{"com.google"};
+        Intent intent = AccountPicker.newChooseAccountIntent(null, null,
+                accountTypes, false, null, null, null, null);
+        startActivityForResult(intent, REQUEST_CODE_PICK_ACCOUNT);
+    }
+
+    public void setAuthToken(String token) {
+        this.mAuthToken = token;
+    }
+
+    /**
+     * This method is a hook for background threads and async tasks that need to
+     * provide the user a response UI when an exception occurs.
+     */
+    public void handleException(final Exception e) {
+        // Because this call comes from the AsyncTask, we must ensure that the following
+        // code instead executes on the UI thread.
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (e instanceof GooglePlayServicesAvailabilityException) {
+                    // The Google Play services APK is old, disabled, or not present.
+                    // Show a dialog created by Google Play services that allows
+                    // the user to update the APK
+                    int statusCode = ((GooglePlayServicesAvailabilityException)e)
+                            .getConnectionStatusCode();
+                    Dialog dialog = GooglePlayServicesUtil.getErrorDialog(statusCode,
+                            Phishpic.this,
+                            REQUEST_CODE_RECOVER_FROM_PLAY_SERVICES_ERROR);
+                    dialog.show();
+                } else if (e instanceof UserRecoverableAuthException) {
+                    // Unable to authenticate, such as when the user has not yet granted
+                    // the app access to the account, but the user can fix this.
+                    // Forward the user to an activity in Google Play services.
+                    Intent intent = ((UserRecoverableAuthException)e).getIntent();
+                    startActivityForResult(intent,
+                            REQUEST_CODE_RECOVER_FROM_PLAY_SERVICES_ERROR);
+                }
+            }
+        });
     }
 
     public void uploadPicture(View v) {
@@ -108,6 +178,9 @@ public class Phishpic extends Activity {
         meb.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
         HttpEntity multipartEntity = meb.build();
         httppost.setEntity(multipartEntity);
+        if (mAuthToken != "") {
+            httppost.addHeader("Authorization", "Bearer 1/" + mAuthToken);
+        }
         try {
             HttpResponse response = httpclient.execute(httppost);
             HttpEntity responseEntity = response.getEntity();
@@ -122,6 +195,23 @@ public class Phishpic extends Activity {
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         Log.d("Phishpic", "Received intent response with request code: " +
                 String.valueOf(requestCode) + ", result code: " + String.valueOf(resultCode));
+        if (requestCode == REQUEST_CODE_PICK_ACCOUNT) {
+            // Receiving a result from the AccountPicker
+            if (resultCode == RESULT_OK) {
+                mEmail = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
+                // With the account name acquired, go get the auth token
+                getUsername();
+            } else if (resultCode == RESULT_CANCELED) {
+                // The account picker dialog closed without selecting an account.
+                // Notify users that they must pick an account to proceed.
+                Toast.makeText(this, "Uploading anonymously", Toast.LENGTH_SHORT).show();
+            }
+        } else if ((requestCode == REQUEST_CODE_RECOVER_FROM_AUTH_ERROR ||
+                requestCode == REQUEST_CODE_RECOVER_FROM_PLAY_SERVICES_ERROR)
+                && resultCode == RESULT_OK) {
+            // Receiving a result that follows a GoogleAuthException, try auth again
+            getUsername();
+        }
     }
 
     @Override
