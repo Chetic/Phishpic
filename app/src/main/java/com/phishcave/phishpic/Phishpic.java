@@ -29,6 +29,17 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.EntityUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -41,7 +52,8 @@ import java.util.List;
 
 
 public class Phishpic extends Activity {
-
+    private int mCameraId = 0;
+    private Camera mCamera;
     private CameraPreview mCameraPreview;
     String mCurrentPhotoPath;
     protected static Activity activity;
@@ -53,8 +65,10 @@ public class Phishpic extends Activity {
 
         activity = this;
 
+
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
-            mCameraPreview = new CameraPreview(this, 0);
+            mCamera = Camera.open(mCameraId);
+            mCameraPreview = new CameraPreview(this, mCameraId, mCamera);
             FrameLayout camera_preview = (FrameLayout)findViewById(R.id.app_frame);
             camera_preview.addView(mCameraPreview);
             Button uploadButton = (Button)findViewById(R.id.uploadButton);
@@ -66,34 +80,42 @@ public class Phishpic extends Activity {
     }
 
     public void uploadPicture(View v) {
-        mCameraPreview.uploadPicture();
+        mCamera.takePicture(null, null, null, new Camera.PictureCallback() {
+            @Override
+            public void onPictureTaken(byte[] jpegData, Camera camera) {
+                Log.d("Phishpic", "onPictureTaken");
+                AsyncTask<byte[], Void, Void> task = new AsyncTask<byte[], Void, Void>() {
+                    @Override
+                    protected Void doInBackground(byte[]... params) {
+                        byte[] jpegData = params[0];
+                        postData(jpegData, "http://phishcave.com/api/upload");
+                        return null;
+                    }
+                };
+                task.execute(jpegData);
+            }
+        });
     }
 
-    private File createImageFile() throws IOException {
-        // Create an image file name
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String imageFileName = "JPEG_" + timeStamp + "_";
-        File storageDir = Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES);
-        storageDir.mkdirs();
-        File image = null;
+    public void postData(byte[] data, String url) {
+        // Create a new HttpClient and Post Header
+        HttpClient httpclient = new DefaultHttpClient();
+        HttpPost httppost = new HttpPost(url);
+        String filename =  new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
+        MultipartEntityBuilder meb = MultipartEntityBuilder.create();
+        meb.addBinaryBody("upload[file]", data, ContentType.create("image/jpeg"), "phishpic" + filename);
+        meb.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+        HttpEntity multipartEntity = meb.build();
+        httppost.setEntity(multipartEntity);
         try {
-            image = File.createTempFile(
-                    imageFileName,  /* prefix */
-                    ".jpg",         /* suffix */
-                    storageDir      /* directory */
-            );
-            // Save a file: path for use with ACTION_VIEW intents
-            mCurrentPhotoPath = image.getAbsolutePath();
+            HttpResponse response = httpclient.execute(httppost);
+            HttpEntity responseEntity = response.getEntity();
+            Log.d("Phishpic", EntityUtils.toString(responseEntity));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        catch (IOException ex) {
-            String errMsg = "Error creating " + imageFileName + ".jpg"
-                    + " in " + storageDir.getAbsolutePath() + ": " + ex.getMessage();
-            Toast.makeText(getApplicationContext(), errMsg, Toast.LENGTH_LONG).show();
-        }
-
-        return image;
+        mCamera.startPreview();
     }
 
     @Override

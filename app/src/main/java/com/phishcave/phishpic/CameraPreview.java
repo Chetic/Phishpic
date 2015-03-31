@@ -54,10 +54,10 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     private Camera mCamera;
     private int mCameraId;
 
-    public CameraPreview(Context context, int cameraId) {
+    public CameraPreview(Context context, int cameraId, Camera camera) {
         super(context);
         mCameraId = cameraId;
-        mCamera = Camera.open(mCameraId);
+        mCamera = camera;
 
         //boolean did_disable_shutter_sound_work = mCamera.enableShutterSound(false);
 
@@ -102,7 +102,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             mCamera.setPreviewDisplay(holder);
             Camera.Parameters params = mCamera.getParameters();
             List<Camera.Size> sizes = params.getSupportedPictureSizes();
-            Camera.Size optimalSize = getOptimalSize(sizes, 1024, 768);
+            Camera.Size optimalSize = getOptimalSize(sizes, 1280, 720);
             params.setPictureSize(optimalSize.width, optimalSize.height);
             Log.d("Phishpic", "Setting picture size to: " + optimalSize.width + "x" + optimalSize.height);
             params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
@@ -114,7 +114,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     }
 
     public void surfaceDestroyed(SurfaceHolder holder) {
-        // empty. Take care of releasing the Camera preview in your activity.
+        mCamera.stopPreview();
+        mCamera.release();
     }
 
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
@@ -135,22 +136,21 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
         // set preview size and make any resize, rotate or
         // reformatting changes here
-        setCameraDisplayOrientation(mCameraId, mCamera);
+        setCameraDisplayOrientation();
 
         // start preview with new settings
         try {
             mCamera.setPreviewDisplay(mHolder);
             mCamera.startPreview();
-
         } catch (Exception e){
             Log.d("Phishpic", "Error starting camera preview: " + e.getMessage());
         }
     }
 
-    public static void setCameraDisplayOrientation(int cameraId, android.hardware.Camera camera) {
+    public void setCameraDisplayOrientation() {
         android.hardware.Camera.CameraInfo info =
                 new android.hardware.Camera.CameraInfo();
-        android.hardware.Camera.getCameraInfo(cameraId, info);
+        android.hardware.Camera.getCameraInfo(mCameraId, info);
         int rotation = Phishpic.activity.getWindowManager().getDefaultDisplay()
                 .getRotation();
         int degrees = 0;
@@ -168,47 +168,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         } else {  // back-facing
             result = (info.orientation - degrees + 360) % 360;
         }
-        camera.setDisplayOrientation(result);
-    }
-
-    public void uploadPicture() {
-        mCamera.takePicture(null, null, null, new Camera.PictureCallback() {
-            @Override
-            public void onPictureTaken(byte[] jpegData, Camera camera) {
-                Log.d("Phishpic", "onPictureTaken");
-                    AsyncTask<byte[], Void, Void> task = new AsyncTask<byte[], Void, Void>() {
-                        @Override
-                        protected Void doInBackground(byte[]... params) {
-                            byte[] jpegData = params[0];
-                            postData(jpegData, "http://phishcave.com/api/upload");
-                            return null;
-                        }
-                    };
-                    task.execute(jpegData);
-            }
-        });
-    }
-
-    public void postData(byte[] data, String url) {
-        // Create a new HttpClient and Post Header
-        HttpClient httpclient = new DefaultHttpClient();
-        HttpPost httppost = new HttpPost(url);
-        String filename =  new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-
-        try {
-            MultipartEntityBuilder meb = MultipartEntityBuilder.create();
-            meb.addBinaryBody("upload[file]", data, ContentType.create("image/jpeg"), "phishpic" + filename);
-            meb.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-            HttpEntity multipartEntity = meb.build();
-            httppost.setEntity(multipartEntity);
-            HttpResponse response = httpclient.execute(httppost);
-            HttpEntity responseEntity = response.getEntity();
-            Log.d("Phishpic", EntityUtils.toString(responseEntity));
-            mCamera.startPreview();
-        } catch (ClientProtocolException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        mCamera.setDisplayOrientation(result);
     }
 }
