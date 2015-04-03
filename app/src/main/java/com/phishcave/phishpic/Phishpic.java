@@ -179,7 +179,8 @@ public class Phishpic extends Activity {
         HttpEntity multipartEntity = meb.build();
         httppost.setEntity(multipartEntity);
         if (mAuthToken != "") {
-            httppost.addHeader("Authorization", "Bearer 1/" + mAuthToken);
+            httppost.addHeader("AuthToken", mAuthToken);
+            httppost.addHeader("AuthMethod", "Google");
         }
         try {
             HttpResponse response = httpclient.execute(httppost);
