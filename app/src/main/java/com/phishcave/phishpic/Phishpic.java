@@ -82,10 +82,8 @@ public class Phishpic extends Activity {
         activity = this;
 
         mSettings = getPreferences(0);
-        String mEmail = mSettings.getString("email", "");
-        if (mEmail == "") {
-            getUsername();
-        }
+        mEmail = mSettings.getString("email", "");
+        getUsername();
 
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             mCamera = Camera.open(mCameraId);
@@ -106,7 +104,7 @@ public class Phishpic extends Activity {
      * start an instance of the AsyncTask to get the auth token and do work with it.
      */
     private void getUsername() {
-        if (mEmail == null) {
+        if (mEmail == "") {
             pickUserAccount();
         } else {
             new GetUsernameTask(Phishpic.this, mEmail, SCOPE).execute();
