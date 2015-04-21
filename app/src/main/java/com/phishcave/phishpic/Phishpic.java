@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -62,6 +63,7 @@ public class Phishpic extends Activity {
     private int mCameraId = 0;
     private Camera mCamera;
     private CameraPreview mCameraPreview;
+    SharedPreferences mSettings;
     String mCurrentPhotoPath;
     protected static Activity activity;
     static final int REQUEST_CODE_PICK_ACCOUNT = 1000;
@@ -78,7 +80,12 @@ public class Phishpic extends Activity {
         setContentView(R.layout.activity_phishpic);
 
         activity = this;
-        getUsername();
+
+        mSettings = getPreferences(0);
+        String mEmail = mSettings.getString("email", "");
+        if (mEmail == "") {
+            getUsername();
+        }
 
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             mCamera = Camera.open(mCameraId);
@@ -200,6 +207,9 @@ public class Phishpic extends Activity {
             // Receiving a result from the AccountPicker
             if (resultCode == RESULT_OK) {
                 mEmail = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
+                SharedPreferences.Editor settingsEditor = mSettings.edit();
+                settingsEditor.putString("email", mEmail);
+                settingsEditor.commit();
                 // With the account name acquired, go get the auth token
                 getUsername();
             } else if (resultCode == RESULT_CANCELED) {
