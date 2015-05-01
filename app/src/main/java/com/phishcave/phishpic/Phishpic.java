@@ -71,6 +71,15 @@ public class Phishpic extends Activity {
     String mAuthToken = "";
     static final int REQUEST_CODE_RECOVER_FROM_PLAY_SERVICES_ERROR = 1001;
     static final int REQUEST_CODE_RECOVER_FROM_AUTH_ERROR = 1002;
+    static final int REQUEST_CONFIRM_PHOTO = 1;
+    static final int RESULT_CONFIRM = 1;
+    static final int RESULT_RETAKE = 2;
+    private FrameLayout camera_preview;
+    private final String upload_url = "http://phishcave.com/api/upload";
+
+    private String imageName;
+    private byte[] imageData;
+    private Intent confirmIntent;
     private static final String SCOPE =
             "oauth2:https://www.googleapis.com/auth/userinfo.email";
 
@@ -79,19 +88,26 @@ public class Phishpic extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_phishpic);
 
+        camera_preview = (FrameLayout)findViewById(R.id.app_frame);
+        Button uploadButton = (Button)findViewById(R.id.uploadButton);
+        uploadButton.bringToFront();
+
         activity = this;
+        confirmIntent = new Intent(getApplicationContext(), ConfirmPhoto.class);
 
         mSettings = getPreferences(0);
         mEmail = mSettings.getString("email", "");
-        getUsername();
 
+        getUsername();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             mCamera = Camera.open(mCameraId);
             mCameraPreview = new CameraPreview(this, mCameraId, mCamera);
-            FrameLayout camera_preview = (FrameLayout)findViewById(R.id.app_frame);
             camera_preview.addView(mCameraPreview);
-            Button uploadButton = (Button)findViewById(R.id.uploadButton);
-            uploadButton.bringToFront();
         }
         else {
             Toast.makeText(getApplicationContext(), "Error: No camera found", Toast.LENGTH_LONG).show();
@@ -154,47 +170,65 @@ public class Phishpic extends Activity {
         });
     }
 
-    public void uploadPicture(View v) {
+    public void takePhoto(View v) {
         mCamera.takePicture(null, null, null, new Camera.PictureCallback() {
             @Override
             public void onPictureTaken(byte[] jpegData, Camera camera) {
                 Log.d("Phishpic", "onPictureTaken");
-                AsyncTask<byte[], Void, Void> task = new AsyncTask<byte[], Void, Void>() {
-                    @Override
-                    protected Void doInBackground(byte[]... params) {
-                        byte[] jpegData = params[0];
-                        postData(jpegData, "http://phishcave.com/api/upload");
-                        return null;
-                    }
-                };
-                task.execute(jpegData);
+                imageData = jpegData;
+                confirmIntent.putExtra("imageData", imageData);
+                startActivityForResult(confirmIntent, REQUEST_CONFIRM_PHOTO);
             }
         });
     }
 
-    public void postData(byte[] data, String url) {
-        // Create a new HttpClient and Post Header
-        HttpClient httpclient = new DefaultHttpClient();
-        HttpPost httppost = new HttpPost(url);
-        String filename =  new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+    private class UploadPhotoTasAsyncTask extends AsyncTask<byte[], Void, HttpResponse> {
+        @Override
+        protected HttpResponse doInBackground(byte[]... params) {
+            return upload();
+        }
 
-        MultipartEntityBuilder meb = MultipartEntityBuilder.create();
-        meb.addBinaryBody("upload[file]", data, ContentType.create("image/jpeg"), "phishpic" + filename);
-        meb.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-        HttpEntity multipartEntity = meb.build();
-        httppost.setEntity(multipartEntity);
-        if (mAuthToken != "") {
-            httppost.addHeader("AuthToken", mAuthToken);
-            httppost.addHeader("AuthMethod", "Google");
+        protected void onPostExecute(HttpResponse response) {
+            if (response == null) {
+                return;
+            }
+            int status = response.getStatusLine().getStatusCode();
+
+            Context c = getApplicationContext();
+
+            if ( status == 200) {
+                Toast.makeText(c, "Success", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(c, "Failed", Toast.LENGTH_SHORT).show();
+            }
         }
-        try {
-            HttpResponse response = httpclient.execute(httppost);
-            HttpEntity responseEntity = response.getEntity();
-            Log.d("Phishpic", EntityUtils.toString(responseEntity));
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        private HttpResponse upload() {
+            // Create a new HttpClient and Post Header
+            HttpClient httpclient = new DefaultHttpClient();
+            HttpPost httppost = new HttpPost(upload_url);
+            MultipartEntityBuilder meb = MultipartEntityBuilder.create();
+
+            meb.addBinaryBody("upload[file]", imageData, ContentType.create("image/jpeg"), imageName);
+            meb.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+
+            HttpEntity multipartEntity = meb.build();
+            httppost.setEntity(multipartEntity);
+
+            if (mAuthToken != "") {
+                httppost.addHeader("AuthToken", mAuthToken);
+                httppost.addHeader("AuthMethod", "Google");
+            }
+            try {
+                HttpResponse response = httpclient.execute(httppost);
+                HttpEntity responseEntity = response.getEntity();
+                Log.d("Phishpic", EntityUtils.toString(responseEntity));
+                return response;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
         }
-        mCamera.startPreview();
     }
 
     @Override
@@ -220,6 +254,21 @@ public class Phishpic extends Activity {
                 && resultCode == RESULT_OK) {
             // Receiving a result that follows a GoogleAuthException, try auth again
             getUsername();
+        } else if ((requestCode == REQUEST_CONFIRM_PHOTO)) {
+            if (resultCode == RESULT_CONFIRM) {
+                imageName = data.getStringExtra("name");
+                new UploadPhotoTasAsyncTask().execute();
+            }
+        }
+    }
+
+    @Override
+    protected void onPause()
+    {
+        super.onPause();
+        if (mCameraPreview != null) {
+            mCameraPreview.close();
+            mCameraPreview = null;
         }
     }
 

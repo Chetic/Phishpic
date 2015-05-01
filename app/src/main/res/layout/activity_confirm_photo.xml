@@ -1,0 +1,73 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.phishcave.phishpic.ConfirmPhoto"
+    android:id="@+id/layout"
+    android:padding="0dp"
+    android:background="#ff000000">
+
+    <ImageView
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:id="@+id/imageView"
+        android:padding="0dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignWithParentIfMissing="true"
+        android:background="#ffff555c" />
+
+    <TextView android:text="Are you sure you want to upload this image?" android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/textView"
+        android:layout_marginBottom="25dp"
+        android:layout_above="@+id/redoButton"
+        android:layout_centerHorizontal="true"
+        android:textColor="#ffffffff" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No"
+        android:id="@+id/redoButton"
+        android:background="#28000000"
+        android:textColor="#ffffffff"
+        android:nestedScrollingEnabled="true"
+        android:onClick="redoPhoto"
+        android:layout_alignTop="@+id/confirmButton"
+        android:layout_alignLeft="@+id/textView"
+        android:layout_alignStart="@+id/textView" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Yes"
+        android:id="@+id/confirmButton"
+        android:background="#28000000"
+        android:textColor="#ffffffff"
+        android:onClick="uploadPhoto"
+        android:layout_alignParentBottom="true"
+        android:layout_alignRight="@+id/textView"
+        android:layout_alignEnd="@+id/textView"
+        android:layout_marginBottom="33dp" />
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/photoName"
+        android:layout_alignLeft="@+id/textView"
+        android:layout_alignStart="@+id/textView"
+        android:layout_alignRight="@+id/textView"
+        android:layout_alignEnd="@+id/textView"
+        android:layout_above="@+id/textView"
+        android:inputType="textNoSuggestions"
+        android:singleLine="true"
+        android:textColor="#ffffffff"
+        android:gravity="top"
+        android:text="placeholder"
+        android:textAlignment="center"
+        android:shadowColor="#ff000000" />
+
+</RelativeLayout>
