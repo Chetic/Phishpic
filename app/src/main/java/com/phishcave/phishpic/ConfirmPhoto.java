@@ -1,13 +1,11 @@
 package com.phishcave.phishpic;
 
 import android.content.Intent;
+import android.app.Activity;
 import android.graphics.Bitmap;
-import android.hardware.Camera;
-import android.support.v7.app.ActionBarActivity;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -17,11 +15,18 @@ import java.io.ByteArrayInputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+public class ConfirmPhoto extends Activity {
+    public void acceptPhoto(View v) {
+        EditText photo_name_edit_text = (EditText)findViewById(R.id.photoName);
+        Intent intent = new Intent();
+        intent.putExtra("name", photo_name_edit_text.getText().toString());
+        setResult(Phishpic.RESULT_CONFIRM, intent);
+        finish();
+    }
 
-public class ConfirmPhoto extends ActionBarActivity {
-
-    private ImageView image_viewer;
-    private EditText photo_name_edit_text;
+    public void rejectPhoto(View v) {
+        finish();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,54 +34,35 @@ public class ConfirmPhoto extends ActionBarActivity {
 
         setContentView(R.layout.activity_confirm_photo);
 
-        image_viewer = (ImageView)findViewById(R.id.imageView);
-        photo_name_edit_text = (EditText)findViewById(R.id.photoName);
+        ImageView image_viewer = (ImageView)findViewById(R.id.imageView);
+        EditText photo_name_edit_text = (EditText)findViewById(R.id.photoName);
 
         Intent intent = getIntent();
         byte[] imageData = intent.getByteArrayExtra("imageData");
 
         ByteArrayInputStream bis = new ByteArrayInputStream(imageData);
-        Bitmap bp=BitmapFactory.decodeStream(bis);
-        image_viewer.setImageBitmap(bp);
+        Bitmap bmp = BitmapFactory.decodeStream(bis);
+        image_viewer.setImageBitmap(bmp);
         image_viewer.setScaleType(ImageView.ScaleType.FIT_XY);
 
         photo_name_edit_text.setText(defaultPhotoName());
     }
 
+    /* Attempt to free bitmap early */
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        ImageView imageView = (ImageView)findViewById(R.id.imageView);
+        Drawable drawable = imageView.getDrawable();
+
+        if (drawable instanceof BitmapDrawable) {
+            BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+            Bitmap bitmap = bitmapDrawable.getBitmap();
+            bitmap.recycle();
+        }
+    }
+
     private String defaultPhotoName() {
         return "phishpic_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_confirm_photo, menu);
-        return true;
-    }
-
-    public void redoPhoto(View v) {
-        finish();
-    }
-
-    public void uploadPhoto(View v) {
-        Intent intent = new Intent();
-        intent.putExtra("name", photo_name_edit_text.getText().toString());
-        setResult(Phishpic.RESULT_CONFIRM, intent);
-        finish();
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
     }
 }

@@ -35,7 +35,7 @@
         android:background="#28000000"
         android:textColor="#ffffffff"
         android:nestedScrollingEnabled="true"
-        android:onClick="redoPhoto"
+        android:onClick="rejectPhoto"
         android:layout_alignTop="@+id/confirmButton"
         android:layout_alignLeft="@+id/textView"
         android:layout_alignStart="@+id/textView" />
@@ -47,11 +47,12 @@
         android:id="@+id/confirmButton"
         android:background="#28000000"
         android:textColor="#ffffffff"
-        android:onClick="uploadPhoto"
+        android:onClick="acceptPhoto"
         android:layout_alignParentBottom="true"
         android:layout_alignRight="@+id/textView"
         android:layout_alignEnd="@+id/textView"
-        android:layout_marginBottom="33dp" />
+        android:layout_marginBottom="33dp"
+        android:nestedScrollingEnabled="true" />
 
     <EditText
         android:layout_width="wrap_content"
@@ -68,6 +69,8 @@
         android:gravity="top"
         android:text="placeholder"
         android:textAlignment="center"
-        android:shadowColor="#ff000000" />
+        android:shadowColor="#ff000000"
+        android:background="#28000000"
+        android:padding="2dp" />
 
 </RelativeLayout>
