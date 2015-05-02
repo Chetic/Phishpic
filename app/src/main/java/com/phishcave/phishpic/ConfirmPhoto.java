@@ -6,12 +6,14 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.graphics.BitmapFactory;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -28,24 +30,42 @@ public class ConfirmPhoto extends Activity {
         finish();
     }
 
+    private void setBackground() {
+        ImageView image_viewer = (ImageView)findViewById(R.id.imageView);
+        Bitmap bmp = loadPhoto();
+
+        image_viewer.setImageBitmap(bmp);
+        image_viewer.setScaleType(ImageView.ScaleType.FIT_XY);
+    }
+
+    private Bitmap loadPhoto() {
+        final BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inSampleSize = 1;
+
+        try {
+            Bitmap bitmap = BitmapFactory.decodeStream(openFileInput("jpeg"), null, options);
+
+            return bitmap;
+        }
+        catch(FileNotFoundException e) {
+            Log.d("Phishpic", "Error loading bitmap: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    private void setImageName() {
+        EditText photo_name_edit_text = (EditText)findViewById(R.id.photoName);
+        photo_name_edit_text.setText(defaultPhotoName());
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_confirm_photo);
 
-        ImageView image_viewer = (ImageView)findViewById(R.id.imageView);
-        EditText photo_name_edit_text = (EditText)findViewById(R.id.photoName);
-
-        Intent intent = getIntent();
-        byte[] imageData = intent.getByteArrayExtra("imageData");
-
-        ByteArrayInputStream bis = new ByteArrayInputStream(imageData);
-        Bitmap bmp = BitmapFactory.decodeStream(bis);
-        image_viewer.setImageBitmap(bmp);
-        image_viewer.setScaleType(ImageView.ScaleType.FIT_XY);
-
-        photo_name_edit_text.setText(defaultPhotoName());
+        setBackground();
+        setImageName();
     }
 
     /* Attempt to free bitmap early */

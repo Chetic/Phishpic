@@ -10,6 +10,7 @@ import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -31,7 +32,11 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 public class Phishpic extends Activity {
     private int mCameraId = 0;
@@ -50,22 +55,60 @@ public class Phishpic extends Activity {
     private final String upload_url = "http://phishcave.com/api/upload";
 
     private String imageName;
-    private byte[] imageData;
+    private boolean hasJpeg;
+    private boolean hasRaw;
+    private boolean hasProcessed;
     private static final String SCOPE =
             "oauth2:https://www.googleapis.com/auth/userinfo.email";
 
-    public void takePhoto(View v) {
-        mCamera.takePicture(null, null, null, new Camera.PictureCallback() {
-            @Override
-            public void onPictureTaken(byte[] jpegData, Camera camera) {
-                Log.d("Phishpic", "onPictureTaken");
-                imageData = jpegData;
+    public void storeFile(String filename, byte[] data) {
+        try {
+            FileOutputStream fo = openFileOutput(filename, Context.MODE_PRIVATE);
+            fo.write(data);
+            fo.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
-                Intent confirmIntent = new Intent(getApplicationContext(), ConfirmPhoto.class);
-                confirmIntent.putExtra("imageData", imageData);
-                startActivityForResult(confirmIntent, REQUEST_CONFIRM_PHOTO);
-            }
-        });
+    public void takePhoto(View v) {
+        mCamera.takePicture(null,
+                new Camera.PictureCallback() {
+                    @Override
+                    public void onPictureTaken(byte[] data, Camera camera) {
+                        Log.d("Phishpic", "onRAWPictureTaken");
+                        if ( data != null ) {
+                            hasRaw = true;
+                            storeFile("raw", data);
+                        }
+                    }
+                },
+                new Camera.PictureCallback() {
+                    @Override
+                    public void onPictureTaken(byte[] data, Camera camera) {
+                        Log.d("Phishpic", "onPOSTPROCESSESPictureTaken");
+                        if ( data != null ) {
+                            hasProcessed = true;
+                            storeFile("post", data);
+                        }
+                    }
+                },
+                new Camera.PictureCallback() {
+                    @Override
+                    public void onPictureTaken(byte[] data, Camera camera) {
+                        Log.d("Phishpic", "onPictureTaken");
+
+                        if ( data != null ) {
+                            hasJpeg = true;
+                            storeFile("jpeg", data);
+
+                            Intent confirmIntent = new Intent(getApplicationContext(), ConfirmPhoto.class);
+                            startActivityForResult(confirmIntent, REQUEST_CONFIRM_PHOTO);
+                        } else {
+                            Toast.makeText(getApplicationContext(), "Failed to get image", Toast.LENGTH_LONG).show();
+                        }
+                    }
+                });
     }
 
 
@@ -89,9 +132,17 @@ public class Phishpic extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
+
+        hasRaw = false;
+        hasProcessed = false;
+        hasJpeg = false;
+
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
+            DisplayMetrics metrics = new DisplayMetrics();
+            getWindowManager().getDefaultDisplay().getMetrics(metrics);
+
             mCamera = Camera.open(mCameraId);
-            mCameraPreview = new CameraPreview(this, mCameraId, mCamera);
+            mCameraPreview = new CameraPreview(this, mCameraId, mCamera, metrics.widthPixels, metrics.heightPixels);
             camera_preview.addView(mCameraPreview);
         }
         else {
@@ -158,7 +209,7 @@ public class Phishpic extends Activity {
                     // The Google Play services APK is old, disabled, or not present.
                     // Show a dialog created by Google Play services that allows
                     // the user to update the APK
-                    int statusCode = ((GooglePlayServicesAvailabilityException)e)
+                    int statusCode = ((GooglePlayServicesAvailabilityException) e)
                             .getConnectionStatusCode();
                     Dialog dialog = GooglePlayServicesUtil.getErrorDialog(statusCode,
                             Phishpic.this,
@@ -168,7 +219,7 @@ public class Phishpic extends Activity {
                     // Unable to authenticate, such as when the user has not yet granted
                     // the app access to the account, but the user can fix this.
                     // Forward the user to an activity in Google Play services.
-                    Intent intent = ((UserRecoverableAuthException)e).getIntent();
+                    Intent intent = ((UserRecoverableAuthException) e).getIntent();
                     startActivityForResult(intent,
                             REQUEST_CODE_RECOVER_FROM_PLAY_SERVICES_ERROR);
                 }
@@ -197,9 +248,34 @@ public class Phishpic extends Activity {
     }
 
     private class UploadPhotoTasAsyncTask extends AsyncTask<byte[], Void, HttpResponse> {
+
+        private InputStream loadPhotoData() {
+            FileInputStream imageData = null;
+            try {
+                if (hasRaw == true) {
+                    imageData = openFileInput("raw");
+                } else if (hasProcessed == true) {
+                    imageData = openFileInput("post");
+                } else if (hasJpeg == true) {
+                    imageData = openFileInput("jpeg");
+                }
+            }
+            catch(FileNotFoundException e) {
+                Log.d("Phishpic", "Error loading bitmap: " + e.getMessage());
+            }
+
+            return imageData;
+        }
+
         @Override
         protected HttpResponse doInBackground(byte[]... params) {
-            return upload();
+            InputStream imageData = loadPhotoData();
+            if ( imageData != null ) {
+                return upload(imageData);
+            } else {
+                return null;
+            }
+
         }
 
         protected void onPostExecute(HttpResponse response) {
@@ -217,7 +293,7 @@ public class Phishpic extends Activity {
             }
         }
 
-        private HttpResponse upload() {
+        private HttpResponse upload(InputStream imageData) {
             // Create a new HttpClient and Post Header
             HttpClient httpclient = new DefaultHttpClient();
             HttpPost httppost = new HttpPost(upload_url);

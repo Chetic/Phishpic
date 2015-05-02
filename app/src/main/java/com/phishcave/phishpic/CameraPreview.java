@@ -5,8 +5,10 @@ package com.phishcave.phishpic;
  */
 
 import android.content.Context;
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.Size;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -23,11 +25,16 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     private SurfaceHolder mHolder;
     private Camera mCamera;
     private int mCameraId;
+    private int previewHeight;
+    private int previewWidth;
 
-    public CameraPreview(Context context, int cameraId, Camera camera) {
+    public CameraPreview(Context context, int cameraId, Camera camera, int width, int height) {
         super(context);
         mCameraId = cameraId;
         mCamera = camera;
+
+        previewHeight = height;
+        previewWidth = width;
 
         //boolean did_disable_shutter_sound_work = mCamera.enableShutterSound(false);
 
@@ -72,11 +79,18 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             mCamera.setPreviewDisplay(holder);
             Camera.Parameters params = mCamera.getParameters();
             List<Camera.Size> sizes = params.getSupportedPictureSizes();
-            Camera.Size optimalSize = getOptimalSize(sizes, 1280, 720);
-            params.setPictureSize(optimalSize.width, optimalSize.height);
+            Camera.Size optimalSize = getOptimalSize(sizes, previewWidth, previewHeight);
+
             Log.d("Phishpic", "Setting picture size to: " + optimalSize.width + "x" + optimalSize.height);
+
+            params.setPictureSize(optimalSize.width, optimalSize.height);
             params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+            params.setSceneMode(Camera.Parameters.SCENE_MODE_AUTO);
+            params.setPictureFormat(ImageFormat.JPEG);
+            params.setJpegQuality(100);
+
             mCamera.setParameters(params);
+
             mCamera.startPreview();
         } catch (IOException e) {
             Log.d("Phishpic", "Error setting camera preview: " + e.getMessage());
