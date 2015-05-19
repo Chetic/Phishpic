@@ -55,9 +55,6 @@ public class Phishpic extends Activity {
     private final String upload_url = "http://phishcave.com/api/upload";
 
     private String imageName;
-    private boolean hasJpeg;
-    private boolean hasRaw;
-    private boolean hasProcessed;
     private static final String SCOPE =
             "oauth2:https://www.googleapis.com/auth/userinfo.email";
 
@@ -72,34 +69,13 @@ public class Phishpic extends Activity {
     }
 
     public void takePhoto(View v) {
-        mCamera.takePicture(null,
-                new Camera.PictureCallback() {
-                    @Override
-                    public void onPictureTaken(byte[] data, Camera camera) {
-                        Log.d("Phishpic", "onRAWPictureTaken");
-                        if ( data != null ) {
-                            hasRaw = true;
-                            storeFile("raw", data);
-                        }
-                    }
-                },
-                new Camera.PictureCallback() {
-                    @Override
-                    public void onPictureTaken(byte[] data, Camera camera) {
-                        Log.d("Phishpic", "onPOSTPROCESSESPictureTaken");
-                        if ( data != null ) {
-                            hasProcessed = true;
-                            storeFile("post", data);
-                        }
-                    }
-                },
+        mCamera.takePicture(null, null, null,
                 new Camera.PictureCallback() {
                     @Override
                     public void onPictureTaken(byte[] data, Camera camera) {
                         Log.d("Phishpic", "onPictureTaken");
 
                         if ( data != null ) {
-                            hasJpeg = true;
                             storeFile("jpeg", data);
 
                             Intent confirmIntent = new Intent(getApplicationContext(), ConfirmPhoto.class);
@@ -132,10 +108,6 @@ public class Phishpic extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-
-        hasRaw = false;
-        hasProcessed = false;
-        hasJpeg = false;
 
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             DisplayMetrics metrics = new DisplayMetrics();
@@ -252,13 +224,7 @@ public class Phishpic extends Activity {
         private InputStream loadPhotoData() {
             FileInputStream imageData = null;
             try {
-                if (hasRaw == true) {
-                    imageData = openFileInput("raw");
-                } else if (hasProcessed == true) {
-                    imageData = openFileInput("post");
-                } else if (hasJpeg == true) {
-                    imageData = openFileInput("jpeg");
-                }
+                imageData = openFileInput("jpeg");
             }
             catch(FileNotFoundException e) {
                 Log.d("Phishpic", "Error loading bitmap: " + e.getMessage());
